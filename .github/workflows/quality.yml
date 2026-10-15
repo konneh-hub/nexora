@@ -16,6 +16,9 @@ concurrency:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/nexora_ci
+      PAYLOAD_SECRET: ci-only-secret-never-use-in-production-000000000000
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
