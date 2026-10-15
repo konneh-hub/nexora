@@ -74,6 +74,40 @@ const requirePublicMediaMetadata: CollectionBeforeChangeHook = async ({ data }) 
   return data
 }
 
+const protectLastAdministrator: CollectionBeforeChangeHook = async ({ data, originalDoc, req }) => {
+  if (
+    originalDoc?.role === 'administrator' &&
+    originalDoc?.active === true &&
+    (data.role !== undefined && data.role !== 'administrator' || data.active === false)
+  ) {
+    const activeAdmins = await req.payload.find({
+      collection: 'users',
+      where: { and: [{ role: { equals: 'administrator' } }, { active: { equals: true } }] },
+      limit: 2,
+      overrideAccess: true,
+    })
+    if (activeAdmins.totalDocs <= 1) {
+      throw new Error('The last active Administrator cannot be demoted or deactivated.')
+    }
+  }
+  return data
+}
+
+const protectLastAdministratorDelete: Access = async ({ req, id }) => {
+  const actor = req.user as { role?: Role; active?: boolean } | null
+  if (actor?.role !== 'administrator' || actor.active === false) return false
+  if (id === undefined) return false
+  const target = await req.payload.findByID({ collection: 'users', id, overrideAccess: true })
+  if (target.role !== 'administrator' || target.active === false) return true
+  const activeAdmins = await req.payload.find({
+    collection: 'users',
+    where: { and: [{ role: { equals: 'administrator' } }, { active: { equals: true } }] },
+    limit: 2,
+    overrideAccess: true,
+  })
+  return activeAdmins.totalDocs > 1
+}
+
 const auditAfterChange: CollectionAfterChangeHook = async ({ doc, operation, req, collection }) => {
   if (collection.slug === 'audit-events') return doc
   const actor = req.user?.id
@@ -273,11 +307,11 @@ const Testimonials: CollectionConfig = {
     { name: 'quote', type: 'textarea', maxLength: 2000 },
     { name: 'attribution', type: 'text', required: true, maxLength: 160 },
     { name: 'logo', type: 'upload', relationTo: 'media' },
-    { name: 'permissionConfirmed', type: 'checkbox', defaultValue: false, required: true, access: { update: isAdministrator } },
-    { name: 'permissionApprover', type: 'relationship', relationTo: 'users', access: { update: isAdministrator } },
-    { name: 'permissionApprovedAt', type: 'date', access: { update: isAdministrator } },
-    { name: 'permissionEvidenceReference', type: 'text', access: { update: isAdministrator } },
-    { name: 'permissionReviewAt', type: 'date', access: { update: isAdministrator } },
+    { name: 'permissionConfirmed', type: 'checkbox', defaultValue: false, required: true, access: { create: isAdministrator, update: isAdministrator } },
+    { name: 'permissionApprover', type: 'relationship', relationTo: 'users', access: { create: isAdministrator, update: isAdministrator } },
+    { name: 'permissionApprovedAt', type: 'date', access: { create: isAdministrator, update: isAdministrator } },
+    { name: 'permissionEvidenceReference', type: 'text', access: { create: isAdministrator, update: isAdministrator } },
+    { name: 'permissionReviewAt', type: 'date', access: { create: isAdministrator, update: isAdministrator } },
     ...lifecycleFields,
   ],
 }
@@ -391,8 +425,9 @@ const Users: CollectionConfig = {
     create: isAdministrator,
     read: isAdministrator,
     update: isAdministrator,
-    delete: isAdministrator,
+    delete: protectLastAdministratorDelete,
   },
+  hooks: { beforeChange: [protectLastAdministrator, auditAfterChange] },
   fields: [
     { name: 'name', type: 'text', required: true, maxLength: 120 },
     {
