@@ -1,6 +1,6 @@
 # CMS Content Model
 
-**Status:** Logical model for the CMS proof of concept. Exact field types and access syntax depend on the CMS selected.
+**Status:** Implemented as the Payload collection/global baseline in `payload.config.ts`; migration and runtime verification remain pending.
 
 ## Common fields
 
