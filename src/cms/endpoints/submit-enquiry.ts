@@ -82,7 +82,8 @@ const submitEnquiry: Endpoint = {
       !sourceForm ||
       (!email && !phone) ||
       (email !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) ||
-      (input.marketingConsent !== undefined && typeof input.marketingConsent !== 'boolean')
+      (input.marketingConsent !== undefined && typeof input.marketingConsent !== 'boolean') ||
+      (marketingConsent && !consentNoticeVersion)
     ) {
       return Response.json({ error: 'Please check the required fields and try again.' }, { status: 400 })
     }
