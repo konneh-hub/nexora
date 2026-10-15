@@ -44,6 +44,12 @@
 | FR-054–FR-055 | Enquiry immutability and notification delivery | Field-level authorization tests; store-first/email-failure integration test |
 | NFR-001–NFR-013 | Performance, security, accessibility, privacy, resilience and maintainability | CI checks plus documented manual/security/performance tests |
 
+## Database implementation status
+
+- `docs/database-requirements.md` defines the logical fields, constraints, relationships, indexes and database acceptance tests across content, accounts/invitations, enquiries, notifications and audit history.
+- **Physical schema/migrations: Blocked pending CMS proof of concept and founder approval.** The current repository pins Next.js 16.4.0, React 19.3.0, TypeScript 5 and CI Node.js 22; the current Payload installation docs require Node.js 24.15.0+ and TypeScript 6.0.3+, so installing it without a reviewed toolchain decision would violate the no-silent-upgrade rule.
+- No database migration or production connection has been run; do not report the database as implemented until a selected adapter, migrations and passing database tests are present.
+
 ## Dependency and CMS gates
 1. Do not add a CMS package until the proof-of-concept checklist in docs/decisions/0001-cms-selection-pending.md has evidence for the repository's exact Next.js and React versions.
 2. Do not resolve dependency conflicts by silently upgrading framework packages. Preserve exact versions unless compatibility/security evidence and the resulting lockfile justify a change.
