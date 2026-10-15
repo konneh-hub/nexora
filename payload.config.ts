@@ -150,7 +150,7 @@ const Services: CollectionConfig = {
   slug: 'services',
   admin: { useAsTitle: 'title', defaultColumns: ['title', 'slug', 'status', 'sortOrder'] },
   access: contentAccess,
-  hooks: { afterChange: [auditAfterChange] },
+  hooks: { beforeChange: [requireSeoBeforePublish], afterChange: [auditAfterChange] },
   versions: { drafts: { autosave: true }, maxPerDoc: 50 },
   fields: [
     { name: 'title', type: 'text', required: true, maxLength: 120 },
@@ -171,7 +171,7 @@ const Products: CollectionConfig = {
   slug: 'products',
   admin: { useAsTitle: 'title', defaultColumns: ['title', 'availabilityStatus', 'status'] },
   access: contentAccess,
-  hooks: { afterChange: [auditAfterChange] },
+  hooks: { beforeChange: [requireSeoBeforePublish], afterChange: [auditAfterChange] },
   versions: { drafts: { autosave: true }, maxPerDoc: 50 },
   fields: [
     { name: 'title', type: 'text', required: true, maxLength: 120 },
