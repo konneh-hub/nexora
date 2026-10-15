@@ -1,6 +1,6 @@
 # Database Requirements and Field Catalogue
 
-**Status:** Requirements baseline only. This is not an executable or production migration. The final physical schema must be generated from the CMS proof of concept and approved CMS decision in ADR 0001.
+**Status:** Logical field catalogue for the selected Payload/PostgreSQL implementation. The physical schema is generated from `payload.config.ts` and must be represented by reviewed Payload migrations.
 
 **Sources of truth:** SRS v1.1, `AGENTS.md`, `product.md`, `docs/content-model.md`, `docs/roles-and-permissions.md`, and `docs/privacy-and-retention.md`.
 
