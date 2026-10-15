@@ -20,7 +20,7 @@ const services = [
   {
     number: "04",
     title: "IT support",
-    description: "Technology support with agreed responsibilities, scope and expectations.",
+    description: "A planned service area with responsibilities and scope agreed before work begins.",
     href: "/services/it-support",
   },
 ];
