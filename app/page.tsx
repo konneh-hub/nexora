@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const services = [
   {
     number: "01",
@@ -52,13 +54,13 @@ export default function Home() {
     <>
       <header className="site-header">
         <div className="container header-inner">
-          <a className="brand" href="/" aria-label="Nexora Technologies home">
+          <Link className="brand" href="/" aria-label="Nexora Technologies home">
             <BrandMark />
             <span className="brand-copy">
               <strong>Nexora</strong>
               <span>TECHNOLOGIES</span>
             </span>
-          </a>
+          </Link>
           <nav className="desktop-nav" aria-label="Main navigation">
             <a href="/services">Services</a>
             <a href="/products">Products</a>
@@ -196,10 +198,10 @@ export default function Home() {
 
       <footer className="site-footer">
         <div className="container footer-main">
-          <a className="brand footer-brand" href="/" aria-label="Nexora Technologies home">
+          <Link className="brand footer-brand" href="/" aria-label="Nexora Technologies home">
             <BrandMark />
             <span className="brand-copy"><strong>Nexora</strong><span>TECHNOLOGIES</span></span>
-          </a>
+          </Link>
           <p className="footer-tagline">Building What Comes Next.</p>
           <div className="footer-links">
             <a href="/services">Services</a><a href="/products">Products</a><a href="/about">About</a><a href="/contact">Contact</a>
