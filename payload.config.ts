@@ -24,8 +24,11 @@ const isAdministrator = hasRole('administrator')
 const canEditContent = hasRole('administrator', 'editor')
 const canHandleEnquiries = hasRole('administrator', 'enquiry-handler')
 const signedIn = ({ req }: Parameters<Access>[0]) => Boolean(req.user)
-const publicPublished = ({ req }: Parameters<Access>[0]) =>
-  ({ status: { equals: 'Published' } })
+const publicPublished = ({ req }: Parameters<Access>[0]) => {
+  const role = (req.user as { role?: Role } | null)?.role
+  if (role === 'administrator' || role === 'editor') return true
+  return { status: { equals: 'Published' } }
+}
 
 const auditAfterChange: CollectionAfterChangeHook = async ({ doc, operation, req, collection }) => {
   if (collection.slug === 'audit-events') return doc
@@ -409,5 +412,4 @@ export default buildConfig({
     migrationDir: './migrations',
   }),
   typescript: { outputFile: './src/types/payload-generated.ts' },
-  sharp: undefined,
 })
