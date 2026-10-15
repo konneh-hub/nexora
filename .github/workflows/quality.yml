@@ -55,6 +55,8 @@ jobs:
           retention-days: 1
       - name: Apply generated migration to disposable PostgreSQL
         run: npm run migrate
+      - name: Schema baseline tests
+        run: npm test
       - name: Lint
         run: npm run lint
       - name: Typecheck
