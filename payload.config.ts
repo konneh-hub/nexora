@@ -108,6 +108,43 @@ const protectLastAdministratorDelete: Access = async ({ req, id }) => {
   return activeAdmins.totalDocs > 1
 }
 
+const recordEnquiryHistory: CollectionAfterChangeHook = async ({ doc, operation, originalDoc, req }) => {
+  const actor = req.user?.id
+  const events: Array<{ eventType: string; noteText?: string; previousStatus?: string; newStatus?: string; previousAssignee?: string; newAssignee?: string }> = []
+  if (operation === 'create') {
+    events.push({ eventType: 'created' })
+  } else {
+    if (originalDoc?.status !== doc.status) {
+      events.push({
+        eventType: 'status_changed',
+        previousStatus: typeof originalDoc?.status === 'string' ? originalDoc.status : undefined,
+        newStatus: typeof doc.status === 'string' ? doc.status : undefined,
+      })
+    }
+    const previousAssignee = originalDoc?.assignee ? String(originalDoc.assignee) : undefined
+    const newAssignee = doc.assignee ? String(doc.assignee) : undefined
+    if (previousAssignee !== newAssignee) {
+      events.push({ eventType: 'assignment_changed', previousAssignee, newAssignee })
+    }
+    if (typeof doc.internalNotes === 'string' && doc.internalNotes !== originalDoc?.internalNotes) {
+      events.push({ eventType: 'internal_note_added', noteText: doc.internalNotes })
+    }
+  }
+  for (const event of events) {
+    await req.payload.create({
+      collection: 'enquiry-events',
+      overrideAccess: true,
+      req,
+      data: {
+        enquiry: doc.id,
+        actor: actor ? String(actor) : undefined,
+        ...event,
+      },
+    })
+  }
+  return doc
+}
+
 const auditAfterChange: CollectionAfterChangeHook = async ({ doc, operation, req, collection }) => {
   if (collection.slug === 'audit-events') return doc
   const actor = req.user?.id
@@ -325,7 +362,7 @@ const Enquiries: CollectionConfig = {
     update: canHandleEnquiries,
     delete: isAdministrator,
   },
-  hooks: { afterChange: [auditAfterChange] },
+  hooks: { afterChange: [auditAfterChange, recordEnquiryHistory] },
   fields: [
     { name: 'type', type: 'select', required: true, options: [{ label: 'Project', value: 'Project' }, { label: 'Contact', value: 'Contact' }, { label: 'Product Interest', value: 'ProductInterest' }] },
     { name: 'name', type: 'text', required: true, maxLength: 120, access: { update: () => false } },
@@ -347,6 +384,27 @@ const Enquiries: CollectionConfig = {
     { name: 'internalNotes', type: 'textarea', access: { read: canHandleEnquiries, update: canHandleEnquiries } },
     { name: 'retentionReviewAt', type: 'date', required: true, index: true, access: { update: isAdministrator } },
     { name: 'idempotencyKeyHash', type: 'text', unique: true, access: { read: isAdministrator, update: isAdministrator } },
+  ],
+}
+
+const EnquiryEvents: CollectionConfig = {
+  slug: 'enquiry-events',
+  admin: { useAsTitle: 'eventType', defaultColumns: ['createdAt', 'enquiry', 'eventType', 'actor'] },
+  access: { create: canHandleEnquiries, read: canHandleEnquiries, update: () => false, delete: () => false },
+  fields: [
+    { name: 'enquiry', type: 'relationship', relationTo: 'enquiries', required: true, index: true },
+    { name: 'actor', type: 'relationship', relationTo: 'users' },
+    { name: 'eventType', type: 'select', required: true, options: [
+      { label: 'Created', value: 'created' },
+      { label: 'Status changed', value: 'status_changed' },
+      { label: 'Assignment changed', value: 'assignment_changed' },
+      { label: 'Internal note added', value: 'internal_note_added' },
+    ] },
+    { name: 'noteText', type: 'textarea', maxLength: 5000 },
+    { name: 'previousStatus', type: 'text' },
+    { name: 'newStatus', type: 'text' },
+    { name: 'previousAssignee', type: 'text' },
+    { name: 'newAssignee', type: 'text' },
   ],
 }
 
@@ -484,6 +542,7 @@ export default buildConfig({
     Portfolio,
     Testimonials,
     Enquiries,
+    EnquiryEvents,
     NotificationAttempts,
     AuditEvents,
     Invitations,
