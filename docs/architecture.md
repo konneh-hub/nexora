@@ -1,12 +1,12 @@
 # Architecture — Nexora Technologies Website
 
-**Status:** Proposed architecture; founder approval and CMS proof of concept are required before selecting the production CMS.
+**Status:** Payload CMS 3.90.2 with PostgreSQL is selected by explicit founder instruction; the physical migration and CI verification are still pending.
 
 ## System boundaries
 
 - The public Next.js App Router website serves marketing pages and validated enquiry forms.
 - A protected CMS is the source of truth for editable page, service, product, FAQ, navigation, footer and site-setting content.
-- The CMS stores structured content, users, workflow/version history and enquiry records in managed PostgreSQL, subject to the selected CMS proof of concept.
+- Payload CMS stores structured content, users, workflow/version history and enquiry records in PostgreSQL through its official Drizzle adapter.
 - Media belongs in S3-compatible object storage; private operational files must not be exposed through public media URLs.
 - A transactional email provider sends notifications after an enquiry is durably stored.
 - The admin interface is private, has no public registration, and enforces permissions on the server for every operation.
@@ -43,7 +43,6 @@
 
 ## Decisions still open
 
-- CMS: Payload is recommended but must pass a proof of concept before final selection.
 - Hosting, PostgreSQL provider, media storage and transactional email provider.
 - Administrator accounts, role assignments and MFA recovery.
 - Retention periods and approved privacy/terms copy.
@@ -51,3 +50,10 @@
 - Styling implementation should remain consistent; the current code uses Tailwind's import for compatibility but the custom homepage styles are authored in `app/globals.css`. Confirm the long-term approach before expanding the design system.
 
 Do not silently resolve these decisions. Record approved choices in `docs/decisions/` and update the relevant baseline documents in the same change.
+
+## Database implementation status
+
+- Payload collection/global configuration is in `payload.config.ts`; the database requirements catalogue is in `docs/database-requirements.md`.
+- Generate the initial migration with `npm run migrate:create`, review it, commit it, and test it against an empty disposable PostgreSQL database before staging.
+- Payload owns the physical schema. Do not add parallel handwritten tables for CMS-owned collections.
+- The migration generator and build have not been executed in this environment. A committed lockfile, generated migration and passing CI results remain outstanding.
