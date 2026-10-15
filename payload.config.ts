@@ -35,7 +35,7 @@ const publicMediaAccess: Access = ({ req }) => {
 const publicPublished = ({ req }: Parameters<Access>[0]) => {
   const user = req.user as { role?: Role; active?: boolean } | null
   if (user?.active !== false && (user?.role === 'administrator' || user?.role === 'editor')) return true
-  return { and: [{ status: { equals: 'Published' } }, { _status: { equals: 'published' } }] }
+  return { status: { equals: 'Published' } }
 }
 
 const requireSeoBeforePublish: CollectionBeforeChangeHook = async ({ data }) => {
@@ -135,7 +135,7 @@ const Pages: CollectionConfig = {
   admin: { useAsTitle: 'title', defaultColumns: ['title', 'slug', 'status', 'updatedAt'] },
   access: contentAccess,
   hooks: { beforeChange: [requireSeoBeforePublish], afterChange: [auditAfterChange] },
-  versions: { drafts: { autosave: true }, maxPerDoc: 50 },
+  versions: { maxPerDoc: 50 },
   fields: [
     { name: 'title', type: 'text', required: true, maxLength: 120 },
     { name: 'slug', type: 'text', required: true, unique: true, index: true, maxLength: 160 },
@@ -209,7 +209,7 @@ const FAQs: CollectionConfig = {
   admin: { useAsTitle: 'question', defaultColumns: ['question', 'category', 'status', 'sortOrder'] },
   access: contentAccess,
   hooks: { beforeChange: [requireSeoBeforePublish], afterChange: [auditAfterChange] },
-  versions: { drafts: { autosave: true }, maxPerDoc: 30 },
+  versions: { maxPerDoc: 30 },
   fields: [
     { name: 'question', type: 'text', required: true, maxLength: 240 },
     { name: 'answer', type: 'richText', required: true },
