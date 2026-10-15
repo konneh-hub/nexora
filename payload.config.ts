@@ -38,11 +38,12 @@ const publicPublished = ({ req }: Parameters<Access>[0]) => {
   return { status: { equals: 'Published' } }
 }
 
-const requireSeoBeforePublish: CollectionBeforeChangeHook = async ({ data }) => {
-  if (data.status === 'Published' && (!data.seoTitle || !data.seoDescription)) {
+const requireSeoBeforePublish: CollectionBeforeChangeHook = async ({ data, originalDoc }) => {
+  const merged = { ...originalDoc, ...data }
+  if (merged.status === 'Published' && (!merged.seoTitle || !merged.seoDescription)) {
     throw new Error('Published content requires an SEO title and description.')
   }
-  if (data.status === 'Published') data.publishedAt = new Date().toISOString()
+  if (merged.status === 'Published' && data.status === 'Published') data.publishedAt = new Date().toISOString()
   return data
 }
 
@@ -64,11 +65,12 @@ const requirePermissionBeforePublish: CollectionBeforeChangeHook = async ({ data
   return data
 }
 
-const requirePublicMediaMetadata: CollectionBeforeChangeHook = async ({ data }) => {
-  if (data.visibility === 'public' && data.decorative !== true && !data.altText) {
+const requirePublicMediaMetadata: CollectionBeforeChangeHook = async ({ data, originalDoc }) => {
+  const merged = { ...originalDoc, ...data }
+  if (merged.visibility === 'public' && merged.decorative !== true && !merged.altText) {
     throw new Error('Public informative media requires alternative text.')
   }
-  if (data.visibility === 'public' && !data.licence) {
+  if (merged.visibility === 'public' && !merged.licence) {
     throw new Error('Public media requires a recorded licence or ownership basis.')
   }
   return data
@@ -178,7 +180,8 @@ const lifecycleFields = [
       { label: 'Archived', value: 'Archived' },
     ],
     access: { create: ({ req, data }) => {
-      const role = (req.user as { role?: Role } | null)?.role
+      const user = req.user as { role?: Role; active?: boolean } | null
+      const role = user?.active !== false ? user?.role : undefined
       return role === 'administrator' || (role === 'editor' && (data?.status === 'Draft' || data?.status === 'In review'))
     }, update: ({ req, data }) => {
       const role = (req.user as { role?: Role } | null)?.role
@@ -390,7 +393,7 @@ const Enquiries: CollectionConfig = {
 const EnquiryEvents: CollectionConfig = {
   slug: 'enquiry-events',
   admin: { useAsTitle: 'eventType', defaultColumns: ['createdAt', 'enquiry', 'eventType', 'actor'] },
-  access: { create: canHandleEnquiries, read: canHandleEnquiries, update: () => false, delete: () => false },
+  access: { create: () => false, read: canHandleEnquiries, update: () => false, delete: () => false },
   fields: [
     { name: 'enquiry', type: 'relationship', relationTo: 'enquiries', required: true, index: true },
     { name: 'actor', type: 'relationship', relationTo: 'users' },
