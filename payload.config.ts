@@ -7,6 +7,7 @@ import type {
   GlobalConfig,
 } from 'payload'
 import { buildConfig } from 'payload'
+import submitEnquiry from './src/cms/endpoints/submit-enquiry'
 
 const databaseURL = process.env.DATABASE_URL
 const payloadSecret = process.env.PAYLOAD_SECRET
@@ -24,6 +25,11 @@ const isAdministrator = hasRole('administrator')
 const canEditContent = hasRole('administrator', 'editor')
 const canHandleEnquiries = hasRole('administrator', 'enquiry-handler')
 const signedIn = ({ req }: Parameters<Access>[0]) => Boolean(req.user)
+const publicMediaAccess: Access = ({ req }) => {
+  const role = (req.user as { role?: Role } | null)?.role
+  if (role === 'administrator' || role === 'editor') return true
+  return { visibility: { equals: 'public' } }
+}
 const publicPublished = ({ req }: Parameters<Access>[0]) => {
   const role = (req.user as { role?: Role } | null)?.role
   if (role === 'administrator' || role === 'editor') return true
@@ -174,12 +180,13 @@ const Media: CollectionConfig = {
   upload: { mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'], limits: { fileSize: 5_000_000 } },
   access: {
     create: canEditContent,
-    read: signedIn,
+    read: publicMediaAccess,
     update: canEditContent,
     delete: isAdministrator,
   },
   hooks: { afterChange: [auditAfterChange] },
   fields: [
+    { name: 'visibility', type: 'select', required: true, defaultValue: 'private', options: [{ label: 'Private', value: 'private' }, { label: 'Public', value: 'public' }], access: { update: isAdministrator } },
     { name: 'altText', type: 'text', maxLength: 250 },
     { name: 'decorative', type: 'checkbox', defaultValue: false },
     { name: 'caption', type: 'text', maxLength: 300 },
@@ -363,7 +370,7 @@ const Users: CollectionConfig = {
 
 const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
-  access: { read: signedIn, update: isAdministrator },
+  access: { read: () => true, update: isAdministrator },
   fields: [
     { name: 'businessName', type: 'text', required: true, defaultValue: 'Nexora Technologies' },
     { name: 'tagline', type: 'text', required: true, defaultValue: 'Building What Comes Next.' },
@@ -387,6 +394,7 @@ export default buildConfig({
     user: 'users',
     importMap: { baseDir: process.cwd() },
   },
+  endpoints: [submitEnquiry],
   collections: [
     Users,
     Pages,
