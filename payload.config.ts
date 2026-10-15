@@ -3,6 +3,7 @@ import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import type {
   Access,
   CollectionAfterChangeHook,
+  CollectionBeforeChangeHook,
   CollectionConfig,
   GlobalConfig,
 } from 'payload'
@@ -24,7 +25,6 @@ const hasRole = (...roles: Role[]): Access => ({ req }) =>
 const isAdministrator = hasRole('administrator')
 const canEditContent = hasRole('administrator', 'editor')
 const canHandleEnquiries = hasRole('administrator', 'enquiry-handler')
-const signedIn = ({ req }: Parameters<Access>[0]) => Boolean(req.user)
 const publicMediaAccess: Access = ({ req }) => {
   const role = (req.user as { role?: Role } | null)?.role
   if (role === 'administrator' || role === 'editor') return true
@@ -34,6 +34,42 @@ const publicPublished = ({ req }: Parameters<Access>[0]) => {
   const role = (req.user as { role?: Role } | null)?.role
   if (role === 'administrator' || role === 'editor') return true
   return { status: { equals: 'Published' } }
+}
+
+const requireSeoBeforePublish: CollectionBeforeChangeHook = async ({ data }) => {
+  if (data.status === 'Published' && (!data.seoTitle || !data.seoDescription)) {
+    throw new Error('Published content requires an SEO title and description.')
+  }
+  if (data.status === 'Published') data.publishedAt = new Date().toISOString()
+  return data
+}
+
+const requirePermissionBeforePublish: CollectionBeforeChangeHook = async ({ data, originalDoc }) => {
+  const merged = { ...originalDoc, ...data }
+  if (merged.status === 'Published') {
+    if (
+      merged.permissionConfirmed !== true ||
+      !merged.permissionApprover ||
+      !merged.permissionApprovedAt ||
+      !merged.permissionEvidenceReference
+    ) {
+      throw new Error('Publishing this record requires confirmed permission, approver, approval date and evidence reference.')
+    }
+    if (merged.permissionReviewAt && new Date(String(merged.permissionReviewAt)).getTime() < Date.now()) {
+      throw new Error('Publication permission review has expired.')
+    }
+  }
+  return data
+}
+
+const requirePublicMediaMetadata: CollectionBeforeChangeHook = async ({ data }) => {
+  if (data.visibility === 'public' && data.decorative !== true && !data.altText) {
+    throw new Error('Public informative media requires alternative text.')
+  }
+  if (data.visibility === 'public' && !data.licence) {
+    throw new Error('Public media requires a recorded licence or ownership basis.')
+  }
+  return data
 }
 
 const auditAfterChange: CollectionAfterChangeHook = async ({ doc, operation, req, collection }) => {
@@ -68,7 +104,7 @@ const lifecycleFields = [
       { label: 'Published', value: 'Published' },
       { label: 'Archived', value: 'Archived' },
     ],
-    access: { update: isAdministrator },
+    access: { create: isAdministrator, update: isAdministrator },
   },
   { name: 'publishedAt', type: 'date', admin: { readOnly: true }, index: true },
   { name: 'scheduledPublishAt', type: 'date', index: true },
@@ -90,7 +126,7 @@ const Pages: CollectionConfig = {
   slug: 'pages',
   admin: { useAsTitle: 'title', defaultColumns: ['title', 'slug', 'status', 'updatedAt'] },
   access: contentAccess,
-  hooks: { afterChange: [auditAfterChange] },
+  hooks: { beforeChange: [requireSeoBeforePublish], afterChange: [auditAfterChange] },
   versions: { drafts: { autosave: true }, maxPerDoc: 50 },
   fields: [
     { name: 'title', type: 'text', required: true, maxLength: 120 },
@@ -153,7 +189,7 @@ const Products: CollectionConfig = {
         { label: 'Pilot', value: 'Pilot' },
         { label: 'Available', value: 'Available' },
       ],
-      access: { update: isAdministrator },
+      access: { create: isAdministrator, update: isAdministrator },
     },
     { name: 'socialImage', type: 'upload', relationTo: 'media' },
     ...lifecycleFields,
@@ -164,7 +200,7 @@ const FAQs: CollectionConfig = {
   slug: 'faqs',
   admin: { useAsTitle: 'question', defaultColumns: ['question', 'category', 'status', 'sortOrder'] },
   access: contentAccess,
-  hooks: { afterChange: [auditAfterChange] },
+  hooks: { beforeChange: [requireSeoBeforePublish], afterChange: [auditAfterChange] },
   versions: { drafts: { autosave: true }, maxPerDoc: 30 },
   fields: [
     { name: 'question', type: 'text', required: true, maxLength: 240 },
@@ -184,7 +220,7 @@ const Media: CollectionConfig = {
     update: canEditContent,
     delete: isAdministrator,
   },
-  hooks: { afterChange: [auditAfterChange] },
+  hooks: { beforeChange: [requirePublicMediaMetadata], afterChange: [auditAfterChange] },
   fields: [
     { name: 'visibility', type: 'select', required: true, defaultValue: 'private', options: [{ label: 'Private', value: 'private' }, { label: 'Public', value: 'public' }], access: { update: isAdministrator } },
     { name: 'altText', type: 'text', maxLength: 250 },
@@ -200,7 +236,7 @@ const Portfolio: CollectionConfig = {
   slug: 'portfolio',
   admin: { useAsTitle: 'title', defaultColumns: ['title', 'permissionConfirmed', 'status'] },
   access: contentAccess,
-  hooks: { afterChange: [auditAfterChange] },
+  hooks: { beforeChange: [requirePermissionBeforePublish, requireSeoBeforePublish], afterChange: [auditAfterChange] },
   versions: { drafts: { autosave: true }, maxPerDoc: 30 },
   fields: [
     { name: 'title', type: 'text', required: true },
@@ -222,7 +258,7 @@ const Testimonials: CollectionConfig = {
   slug: 'testimonials',
   admin: { useAsTitle: 'attribution', defaultColumns: ['attribution', 'permissionConfirmed', 'status'] },
   access: contentAccess,
-  hooks: { afterChange: [auditAfterChange] },
+  hooks: { beforeChange: [requirePermissionBeforePublish, requireSeoBeforePublish], afterChange: [auditAfterChange] },
   versions: { drafts: { autosave: true }, maxPerDoc: 30 },
   fields: [
     { name: 'kind', type: 'select', required: true, options: [{ label: 'Testimonial', value: 'testimonial' }, { label: 'Client logo', value: 'logo' }, { label: 'Partner logo', value: 'partner' }] },
@@ -293,7 +329,7 @@ const NotificationAttempts: CollectionConfig = {
 const AuditEvents: CollectionConfig = {
   slug: 'audit-events',
   admin: { useAsTitle: 'action', defaultColumns: ['occurredAt', 'actor', 'action', 'targetType', 'outcome'] },
-  access: { create: isAdministrator, read: isAdministrator, update: () => false, delete: () => false },
+  access: { create: () => false, read: isAdministrator, update: () => false, delete: () => false },
   fields: [
     { name: 'occurredAt', type: 'date', required: true, defaultValue: () => new Date().toISOString(), index: true },
     { name: 'actor', type: 'relationship', relationTo: 'users' },
