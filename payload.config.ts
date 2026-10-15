@@ -19,21 +19,23 @@ if (process.env.NODE_ENV === 'production' && (!databaseURL || !payloadSecret)) {
 
 type Role = 'administrator' | 'editor' | 'enquiry-handler'
 
-const hasRole = (...roles: Role[]): Access => ({ req }) =>
-  Boolean(req.user && roles.includes((req.user as { role?: Role }).role ?? 'enquiry-handler'))
+const hasRole = (...roles: Role[]): Access => ({ req }) => {
+  const user = req.user as { role?: Role; active?: boolean } | null
+  return Boolean(user && user.active !== false && roles.includes(user.role ?? 'enquiry-handler'))
+}
 
 const isAdministrator = hasRole('administrator')
 const canEditContent = hasRole('administrator', 'editor')
 const canHandleEnquiries = hasRole('administrator', 'enquiry-handler')
 const publicMediaAccess: Access = ({ req }) => {
-  const role = (req.user as { role?: Role } | null)?.role
-  if (role === 'administrator' || role === 'editor') return true
+  const user = req.user as { role?: Role; active?: boolean } | null
+  if (user?.active !== false && (user?.role === 'administrator' || user?.role === 'editor')) return true
   return { visibility: { equals: 'public' } }
 }
 const publicPublished = ({ req }: Parameters<Access>[0]) => {
-  const role = (req.user as { role?: Role } | null)?.role
-  if (role === 'administrator' || role === 'editor') return true
-  return { status: { equals: 'Published' } }
+  const user = req.user as { role?: Role; active?: boolean } | null
+  if (user?.active !== false && (user?.role === 'administrator' || user?.role === 'editor')) return true
+  return { and: [{ status: { equals: 'Published' } }, { _status: { equals: 'published' } }] }
 }
 
 const requireSeoBeforePublish: CollectionBeforeChangeHook = async ({ data }) => {
@@ -104,7 +106,13 @@ const lifecycleFields = [
       { label: 'Published', value: 'Published' },
       { label: 'Archived', value: 'Archived' },
     ],
-    access: { create: isAdministrator, update: isAdministrator },
+    access: { create: ({ req, data }) => {
+      const role = (req.user as { role?: Role } | null)?.role
+      return role === 'administrator' || (role === 'editor' && (data?.status === 'Draft' || data?.status === 'In review'))
+    }, update: ({ req, data }) => {
+      const role = (req.user as { role?: Role } | null)?.role
+      return role === 'administrator' || (role === 'editor' && (data?.status === 'Draft' || data?.status === 'In review'))
+    } },
   },
   { name: 'publishedAt', type: 'date', admin: { readOnly: true }, index: true },
   { name: 'scheduledPublishAt', type: 'date', index: true },
@@ -222,7 +230,7 @@ const Media: CollectionConfig = {
   },
   hooks: { beforeChange: [requirePublicMediaMetadata], afterChange: [auditAfterChange] },
   fields: [
-    { name: 'visibility', type: 'select', required: true, defaultValue: 'private', options: [{ label: 'Private', value: 'private' }, { label: 'Public', value: 'public' }], access: { update: isAdministrator } },
+    { name: 'visibility', type: 'select', required: true, defaultValue: 'private', options: [{ label: 'Private', value: 'private' }, { label: 'Public', value: 'public' }], access: { create: isAdministrator, update: isAdministrator } },
     { name: 'altText', type: 'text', maxLength: 250 },
     { name: 'decorative', type: 'checkbox', defaultValue: false },
     { name: 'caption', type: 'text', maxLength: 300 },
@@ -245,11 +253,11 @@ const Portfolio: CollectionConfig = {
     { name: 'clientDisplayName', type: 'text' },
     { name: 'media', type: 'upload', relationTo: 'media', hasMany: true },
     { name: 'outcomes', type: 'array', fields: [{ name: 'text', type: 'text', required: true }] },
-    { name: 'permissionConfirmed', type: 'checkbox', defaultValue: false, required: true, access: { update: isAdministrator } },
-    { name: 'permissionApprover', type: 'relationship', relationTo: 'users', access: { update: isAdministrator } },
-    { name: 'permissionApprovedAt', type: 'date', access: { update: isAdministrator } },
-    { name: 'permissionEvidenceReference', type: 'text', access: { update: isAdministrator } },
-    { name: 'permissionReviewAt', type: 'date', access: { update: isAdministrator } },
+    { name: 'permissionConfirmed', type: 'checkbox', defaultValue: false, required: true, access: { create: isAdministrator, update: isAdministrator } },
+    { name: 'permissionApprover', type: 'relationship', relationTo: 'users', access: { create: isAdministrator, update: isAdministrator } },
+    { name: 'permissionApprovedAt', type: 'date', access: { create: isAdministrator, update: isAdministrator } },
+    { name: 'permissionEvidenceReference', type: 'text', access: { create: isAdministrator, update: isAdministrator } },
+    { name: 'permissionReviewAt', type: 'date', access: { create: isAdministrator, update: isAdministrator } },
     ...lifecycleFields,
   ],
 }
@@ -406,7 +414,7 @@ const Users: CollectionConfig = {
 
 const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
-  access: { read: () => true, update: isAdministrator },
+  access: { read: isAdministrator, update: isAdministrator },
   fields: [
     { name: 'businessName', type: 'text', required: true, defaultValue: 'Nexora Technologies' },
     { name: 'tagline', type: 'text', required: true, defaultValue: 'Building What Comes Next.' },
