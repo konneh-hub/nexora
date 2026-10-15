@@ -37,6 +37,7 @@ A dependency lockfile and automated tests still need to be established as part o
 ## Project documents
 
 - `product.md` — product goals, scope, journeys, decisions and launch gate.
+- `docs/acceptance-traceability.md` — initial SRS acceptance mapping, test evidence requirements and implementation status.
 - `AGENTS.md` — mandatory engineering and safety rules.
 - `Nexora_Technologies_Public_Website_SRS_v1_1.docx` — detailed requirements and acceptance criteria.
 - `docs/architecture.md` — system boundaries and flows.
