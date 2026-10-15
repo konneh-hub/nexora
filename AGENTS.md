@@ -56,10 +56,10 @@ These apply to every task, with no exceptions.
 | Layer | Standard | Notes |
 |---|---|---|
 | Frontend | Next.js (App Router) + TypeScript | Static generation or server rendering from CMS content; on-demand revalidation |
-| CMS and admin | Payload CMS (recommended, pending proof of concept). Alternatives: Strapi, Directus, Sanity | Provides admin UI, roles, drafts, versions and preview |
-| Database | Managed PostgreSQL | Content, enquiries, users, audit log |
+| CMS and admin | Payload CMS 3.90.2 | Founder explicitly directed implementation without a proof of concept; use Payload's App Router integration |
+| Database | PostgreSQL via `@payloadcms/db-postgres` 3.90.2 | Payload owns collections, relationships, auth/version tables and migrations |
 | Media | S3-compatible object storage with CDN | Optimise on upload; private bucket for non-public files |
-| Auth | CMS-native accounts with MFA | Native, plugin or identity provider; verify MFA, lockout and recovery |
+| Auth | Payload-native accounts and role access; Administrator MFA is a mandatory launch gate and must be integrated and tested before production |
 | Styling | One of Tailwind CSS or CSS Modules (decide once, document it) | Brand tokens defined in code |
 | Forms/API | Next.js route handlers writing to the CMS database | Server validation, rate limits, spam controls |
 | Email | Transactional provider or business email | SPF, DKIM, DMARC configured |
@@ -69,7 +69,7 @@ These apply to every task, with no exceptions.
 
 ### Architecture principles
 
-1. **The CMS is the system of record for editable content.** The repository holds code, CMS schema, migrations and seed data for development only. It does not hold live content.
+1. **Payload CMS is the system of record for editable content.** The repository holds code, CMS schema, migrations and seed data for development only. It does not hold live content.
 2. **Public pages are served statically or from cache** so the site stays available if the CMS or admin is down (NFR-013).
 3. **Published changes reach the public site within 60 seconds** through on-demand revalidation or cache purge, with no redeployment (FR-032).
 4. **Separate concerns:** public rendering, CMS configuration, API handlers, domain logic and infrastructure live in separate modules.
@@ -80,7 +80,7 @@ These apply to every task, with no exceptions.
 
 ## 4. Repository layout
 
-Follow this structure unless the chosen CMS requires an equivalent. Document any deviation in `docs/architecture.md`.
+Follow this structure unless Payload requires an equivalent. Document any deviation in `docs/architecture.md`.
 
 ```
 /

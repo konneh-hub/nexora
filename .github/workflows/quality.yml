@@ -1,0 +1,67 @@
+name: Quality checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: nexora_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d nexora_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/nexora_ci
+      PAYLOAD_SECRET: ci-only-secret-never-use-in-production-000000000000
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+      - name: Install dependencies
+        run: npm install
+      - name: Generate initial Payload migration
+        run: npm run migrate:create -- initial-schema --skip-empty
+      - name: Upload generated database baseline and lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-database-baseline
+          path: |
+            package-lock.json
+            migrations/*.ts
+          if-no-files-found: error
+          retention-days: 1
+      - name: Apply generated migration to disposable PostgreSQL
+        run: npm run migrate
+      - name: Schema baseline tests
+        run: npm test
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Dependency audit
+        run: npm run audit
+      - name: Production build
+        run: npm run build

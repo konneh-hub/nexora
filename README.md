@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nexora Technologies — Public Website
 
-## Getting Started
+Nexora Technologies is a proposed Sierra Leone technology business. This repository is for its public marketing website, protected content-management system (CMS), administration dashboard and enquiry workflow. It is **not** the Nexora Business SaaS product.
 
-First, run the development server:
+**Baseline:** SRS v1.1, `product.md`, and `AGENTS.md`. Read the development rules before making changes.
+
+## Current status
+
+The public homepage, Payload CMS configuration and initial operating documentation are under review in a draft pull request. The production CMS has not yet been selected: Payload CMS is recommended, but the product baseline requires a proof of concept before final selection. Do not treat this repository as launch-ready.
+
+## Requirements
+
+- Node.js version supported by the pinned Next.js release.
+- npm.
+- Do not configure production services or add secrets until the relevant architecture and provider choices are approved.
+
+## Local development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Quality checks
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+npm run typecheck
+npm run audit
+npm run build
+```
 
-## Learn More
+A dependency lockfile and automated tests still need to be established as part of the engineering foundation. Do not merge a release without repeatable dependency installation, automated tests, accessibility checks and a passing production build.
 
-To learn more about Next.js, take a look at the following resources:
+## Project documents
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `product.md` — product goals, scope, journeys, decisions and launch gate.
+- `docs/acceptance-traceability.md` — initial SRS acceptance mapping, test evidence requirements and implementation status.
+- `docs/database-requirements.md` — complete logical database field catalogue, constraints, relationships, indexes and acceptance tests.
+- `payload.config.ts` — Payload collections, globals, role access, publication checks and PostgreSQL adapter configuration.
+- `migrations/README.md` — required initial migration generation and verification procedure.
+- `AGENTS.md` — mandatory engineering and safety rules.
+- `Nexora_Technologies_Public_Website_SRS_v1_1.docx` — detailed requirements and acceptance criteria.
+- `docs/architecture.md` — system boundaries and flows.
+- `docs/content-model.md` — proposed CMS entities and invariants.
+- `docs/roles-and-permissions.md` — role matrix and server-enforced access rules.
+- `docs/admin-guide.md` — draft operating guide.
+- `docs/privacy-and-retention.md` — data inventory and decisions requiring legal review.
+- `docs/deployment.md`, `docs/backup-and-restore.md`, `docs/incident-response.md` — operational requirements.
+- `docs/decisions/` — architecture decisions and approval status.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Important launch restrictions
 
-## Deploy on Vercel
+- No public admin registration or unauthenticated admin access.
+- Only published CMS content may be public.
+- Enquiries must be stored before notification is attempted.
+- Administrator MFA, server-side authorization, audit logging and tested backups are launch requirements.
+- Nexora Business remains Planned or Pilot until approved.
+- Do not publish unconfirmed company details, contact channels, legal notices, pricing, testimonials or portfolio claims.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Database setup status
+
+Payload CMS 3.90.2 and its PostgreSQL adapter are now the selected stack, following the founder's explicit instruction to proceed without a proof of concept. Configure `DATABASE_URL` and `PAYLOAD_SECRET` from a secure environment, then generate and review the initial migration with `npm run migrate:create`, apply it with `npm run migrate`, and generate types with `npm run generate:types`. The initial migration has **not** yet been generated or applied from this environment. A committed npm lockfile, Administrator MFA, notification delivery worker and passing CI tests remain launch gates. See `docs/decisions/0001-cms-selection-pending.md` for the approved stack and remaining work.
