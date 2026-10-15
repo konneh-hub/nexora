@@ -12,7 +12,7 @@
     "generate:types": "payload generate:types",
     "migrate:create": "payload migrate:create",
     "migrate": "payload migrate",
-    "seed": "tsx seed/index.ts"
+    "admin:create": "tsx scripts/create-first-admin.ts"
   },
   "dependencies": {
     "next": "16.4.0",
