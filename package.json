@@ -12,7 +12,8 @@
     "generate:types": "payload generate:types",
     "migrate:create": "payload migrate:create",
     "migrate": "payload migrate",
-    "admin:create": "tsx scripts/create-first-admin.ts"
+    "admin:create": "tsx scripts/create-first-admin.ts",
+    "test": "node --import tsx --test tests/unit/database-schema.test.ts"
   },
   "dependencies": {
     "next": "16.4.0",
