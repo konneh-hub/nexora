@@ -43,7 +43,7 @@ test('Payload defines the database collections and required field baseline', asy
   const availability = product.fields.find((field) => field.name === 'availabilityStatus')
   assert.ok(availability)
   assert.equal(availability.type, 'select')
-  assert.deepEqual(availability.options?.map((option) => option.value), ['Planned', 'Pilot', 'Available'])
+  assert.deepEqual(availability.options?.map((option) => typeof option === 'string' ? option : option.value), ['Planned', 'Pilot', 'Available'])
 
   const enquiryFields = fieldsFor('enquiries')
   for (const field of [
