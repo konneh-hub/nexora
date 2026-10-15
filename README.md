@@ -6,7 +6,7 @@ Nexora Technologies is a proposed Sierra Leone technology business. This reposit
 
 ## Current status
 
-The public homepage and initial operating documentation are under review in a draft pull request. The production CMS has not yet been selected: Payload CMS is recommended, but the product baseline requires a proof of concept before final selection. Do not treat this repository as launch-ready.
+The public homepage, Payload CMS configuration and initial operating documentation are under review in a draft pull request. The production CMS has not yet been selected: Payload CMS is recommended, but the product baseline requires a proof of concept before final selection. Do not treat this repository as launch-ready.
 
 ## Requirements
 
@@ -38,7 +38,9 @@ A dependency lockfile and automated tests still need to be established as part o
 
 - `product.md` — product goals, scope, journeys, decisions and launch gate.
 - `docs/acceptance-traceability.md` — initial SRS acceptance mapping, test evidence requirements and implementation status.
-- `docs/database-requirements.md` — complete logical database field catalogue, constraints, relationships, indexes and acceptance tests; the physical schema remains gated on CMS approval.
+- `docs/database-requirements.md` — complete logical database field catalogue, constraints, relationships, indexes and acceptance tests.
+- `payload.config.ts` — Payload collections, globals, role access, publication checks and PostgreSQL adapter configuration.
+- `migrations/README.md` — required initial migration generation and verification procedure.
 - `AGENTS.md` — mandatory engineering and safety rules.
 - `Nexora_Technologies_Public_Website_SRS_v1_1.docx` — detailed requirements and acceptance criteria.
 - `docs/architecture.md` — system boundaries and flows.
@@ -57,3 +59,8 @@ A dependency lockfile and automated tests still need to be established as part o
 - Administrator MFA, server-side authorization, audit logging and tested backups are launch requirements.
 - Nexora Business remains Planned or Pilot until approved.
 - Do not publish unconfirmed company details, contact channels, legal notices, pricing, testimonials or portfolio claims.
+
+
+## Database setup status
+
+Payload CMS 3.90.2 and its PostgreSQL adapter are now the selected stack, following the founder's explicit instruction to proceed without a proof of concept. Configure `DATABASE_URL` and `PAYLOAD_SECRET` from a secure environment, then generate and review the initial migration with `npm run migrate:create`, apply it with `npm run migrate`, and generate types with `npm run generate:types`. The initial migration has **not** yet been generated or applied from this environment. A committed npm lockfile, Administrator MFA, notification delivery worker and passing CI tests remain launch gates. See `docs/decisions/0001-cms-selection-pending.md` for the approved stack and remaining work.
